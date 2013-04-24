@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+	xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/integration
+			http://www.springframework.org/schema/integration/spring-integration-2.1.xsd
+			http://www.springframework.org/schema/integration/jms
+			http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+			http://www.springframework.org/schema/integration/stream
+			http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd">
+
+	<int-jms:outbound-channel-adapter id="outboundJms" extract-payload="true"
+		destination="dest" channel="jmsChannel" connection-factory="connectionFactory">
+	</int-jms:outbound-channel-adapter>
+
+	<int:channel id="localChannel" >
+		<int:dispatcher failover="true"/>
+	</int:channel>
+	
+	<int:channel id="jmsChannel" />
+	<int:channel id="headerEnrichChannel" />
+	<int:channel id="filterChannel"/>
+	<int:header-enricher id="headerEnrich" output-channel="jmsChannel" input-channel="headerEnrichChannel">
+		<int:header name="SRC_SYSTEM" value="local"/>
+		<int:header name="TARGET_SYSTEM" value="ActiveMQ"/>
+	</int:header-enricher>
+	<int-stream:stdin-channel-adapter id="stdin" channel="jmsChannel" />
+	
+	<int-stream:stdout-channel-adapter id="stdout" />
+	
+	<int:object-to-json-transformer
+		input-channel="localChannel" output-channel="headerEnrichChannel">
+	</int:object-to-json-transformer>
+	
+	<int:service-activator input-channel="localChannel"
+		ref="tradeProcessor" method="processTrade">
+	</int:service-activator>
+	
+<!--	<int:bridge id="testbridge" input-channel="filterChannel"-->
+<!--		output-channel="stdout">-->
+<!--	</int:bridge>-->
+	
+	<!-- Filter the messages which not needed. -->
+<!--	<int:filter input-channel="localChannel" output-channel="filterChannel" ref="successTradeFilter" method="isSuccessTrade"/>-->
+	<bean id="successTradeFilter" class="com.scb.springintegration.jms.TradeFilter"/>
+	
+	<bean id="tradeProcessor" class="com.scb.springintegration.TradeProcessor"/>
+	
+</beans>

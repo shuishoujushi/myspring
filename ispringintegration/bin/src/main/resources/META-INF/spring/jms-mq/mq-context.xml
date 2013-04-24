@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/integration
+			http://www.springframework.org/schema/integration/spring-integration.xsd">
+
+	<bean id="connectionFactory" class="com.ibm.mq.jms.MQQueueConnectionFactory">
+		<property name="channel" value="SYSTEM.AUTO.SVRCONN"/>
+		<property name="hostName" value="10.112.176.162"/>
+		<property name="port" value="1415"/>
+		<property name="CCSID" value="1208"/>
+		<property name="queueManager" value="HKMB01S1"/>
+		<property name="transportType" value="1"/>
+	</bean>
+	<bean id="dest" class="com.ibm.mq.jms.MQQueue" depends-on="connectionFactory">
+		<property name="baseQueueName" value="IB.SG.INQ.REQ.PUT2"/>
+		<property name="targetClient" value="1" />
+	</bean>
+	
+	<!-- template -->
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate102">
+		<property name="connectionFactory" ref="connectionFactory" />
+		<property name="defaultDestination" ref="dest"/>
+	</bean>
+	
+	<!-- Receiver -->
+	<bean id="jmsReceiver" class="com.scb.springintegration.jms.mq.JmsReceiver">
+		<property name="jmsTemplate" ref="jmsTemplate"/>
+	</bean>
+	
+	<!-- Sender -->
+	<bean id="jmsSender" class="com.scb.springintegration.jms.mq.JmsSender">
+		<property name="jmsTemplate" ref="jmsTemplate"/>
+	</bean>
+	
+	<integration:poller id="poller" default="true" fixed-delay="1000"/>
+
+</beans>

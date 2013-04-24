@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jms="http://www.springframework.org/schema/integration/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/integration
+			http://www.springframework.org/schema/integration/spring-integration.xsd
+			http://www.springframework.org/schema/integration/jms
+			http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+			http://www.springframework.org/schema/integration/stream
+			http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd">
+
+	<int:gateway id="gateway" default-request-channel="trades-in-channel"
+		default-reply-channel="trades-out-channel"
+		service-interface="com.scb.springintegration.gateway.ITradeGateway" />
+
+	<int:channel id="trades-in-channel"></int:channel>
+	<int:channel id="trades-out-channel"></int:channel>
+
+	<int:service-activator input-channel="trades-in-channel"
+		output-channel="trades-out-channel" ref="tradeProcessor" method="receiveTrade">
+	</int:service-activator>
+	
+	<bean id="tradeProcessor" class="com.scb.springintegration.gateway.TradeProcessor" />
+</beans>

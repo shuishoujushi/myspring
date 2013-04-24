@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:stream="http://www.springframework.org/schema/integration/stream"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/integration
+			http://www.springframework.org/schema/integration/spring-integration-2.1.xsd
+			http://www.springframework.org/schema/integration/jms
+			http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+			http://www.springframework.org/schema/integration/stream
+			http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd">
+			
+	<!-- Note:extract-payload attribute is default true, convert messages automaticlly -->
+	<int-jms:message-driven-channel-adapter id="msgDrivenAdapter" connection-factory="connectionFactory"
+		destination="dest" channel="jmsChannel" extract-payload="true"/>
+	
+	<int:channel id="jmsChannel"/>
+	<int:channel id="localChannel"/>
+	<int:channel id="filterChannel"/>
+	<stream:stdout-channel-adapter id="stdout" channel="localChannel" append-newline="true"/>	
+	
+	<int:json-to-object-transformer input-channel="jmsChannel" output-channel="filterChannel"
+		type="com.scb.springintegration.jms.Trade">
+	</int:json-to-object-transformer>
+		
+	<!-- Filter the messages which not needed. -->
+	<int:filter input-channel="filterChannel" output-channel="localChannel" ref="successTradeFilter" method="isSuccessTrade"/>
+	<bean id="successTradeFilter" class="com.scb.springintegration.jms.TradeFilter"/>
+	
+	
+	<!-- Router determines the routing of messages to different channels. -->
+	<int:channel id="no-matches-channel"/>
+	<int:channel id="route-channel-status-submit"/>
+	<int:channel id="route-channel-status-reject"/>
+	<int:channel id="route-channel-status-success"/>
+	<int:channel id="route-channel-payload-trade"/>
+	<int:channel id="route-channel-payload-account"/>
+	<int:header-value-router input-channel="all-in-channel"
+		header-name="status" default-output-channel="no-matches-channel">
+		<int:mapping value="Submit" channel="route-channel-status-submit"/>
+		<int:mapping value="Reject" channel="route-channel-status-reject"/>
+		<int:mapping value="Success" channel="route-channel-status-success"/>
+	</int:header-value-router>
+	
+	<int:payload-type-router input-channel="all-in-channel">
+		<int:mapping type="com.scb.springintegration.jms.Trade" channel="route-channel-payload-trade"/>
+		<int:mapping type="com.scb.springintegration.jms.Account" channel="route-channel-payload-account"/>
+	</int:payload-type-router>
+	
+</beans>
